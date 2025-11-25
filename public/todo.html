@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>待办事项</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+          "PingFang SC", "Microsoft Yahei", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top, #173b6c 0%, #0b1220 60%);
+        padding: 24px;
+        color: #e8ecff;
+      }
+
+      .app {
+        width: min(480px, 100%);
+        background: rgba(8, 12, 26, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 24px 45px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(14px);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 28px;
+        letter-spacing: 1px;
+      }
+
+      p.subtitle {
+        margin: 0 0 24px;
+        color: rgba(232, 236, 255, 0.75);
+      }
+
+      form {
+        display: flex;
+        gap: 12px;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(0, 0, 0, 0.25);
+        color: inherit;
+        font-size: 16px;
+      }
+
+      button {
+        padding: 0 20px;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        color: #0b1220;
+        background: linear-gradient(135deg, #47d7ac, #1bb1ff);
+        transition: transform 150ms ease, box-shadow 150ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 18px rgba(23, 83, 148, 0.25);
+      }
+
+      ul {
+        list-style: none;
+        margin: 20px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .todo-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .todo-item.completed {
+        opacity: 0.65;
+        text-decoration: line-through;
+      }
+
+      .todo-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #47d7ac;
+      }
+
+      .todo-item button {
+        margin-left: auto;
+        background: none;
+        color: rgba(232, 236, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 6px 12px;
+      }
+
+      .filters {
+        display: flex;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .filters button {
+        flex: 1;
+        padding: 10px 0;
+        background: rgba(255, 255, 255, 0.04);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .filters button.is-active {
+        border-color: #47d7ac;
+        color: #47d7ac;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <h1>待办事项</h1>
+      <p class="subtitle">简单记录，立即行动</p>
+
+      <form id="todo-form">
+        <input
+          type="text"
+          id="todo-input"
+          placeholder="输入今天想完成的事情…"
+          autocomplete="off"
+        />
+        <button type="submit">添加</button>
+      </form>
+
+      <ul id="todo-list"></ul>
+
+      <div class="filters" id="filters">
+        <button data-filter="all" class="is-active">全部</button>
+        <button data-filter="active">进行中</button>
+        <button data-filter="completed">已完成</button>
+      </div>
+    </div>
+
+    <script>
+      const todos = JSON.parse(localStorage.getItem("todos") || "[]");
+      let filter = "all";
+
+      const form = document.getElementById("todo-form");
+      const input = document.getElementById("todo-input");
+      const list = document.getElementById("todo-list");
+      const filterBar = document.getElementById("filters");
+
+      const persist = () =>
+        localStorage.setItem("todos", JSON.stringify(todos));
+
+      function render() {
+        list.innerHTML = "";
+        todos
+          .filter((todo) => {
+            if (filter === "active") return !todo.done;
+            if (filter === "completed") return todo.done;
+            return true;
+          })
+          .forEach((todo, idx) => {
+            const li = document.createElement("li");
+            li.className = `todo-item ${todo.done ? "completed" : ""}`;
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = todo.done;
+            checkbox.addEventListener("change", () => {
+              todos[idx].done = !todos[idx].done;
+              persist();
+              render();
+            });
+
+            const span = document.createElement("span");
+            span.textContent = todo.text;
+
+            const removeBtn = document.createElement("button");
+            removeBtn.textContent = "删除";
+            removeBtn.addEventListener("click", () => {
+              todos.splice(idx, 1);
+              persist();
+              render();
+            });
+
+            li.append(checkbox, span, removeBtn);
+            list.appendChild(li);
+          });
+      }
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        todos.unshift({ text, done: false });
+        input.value = "";
+        persist();
+        render();
+      });
+
+      filterBar.addEventListener("click", (event) => {
+        if (event.target.tagName !== "BUTTON") return;
+        filter = event.target.dataset.filter;
+        [...filterBar.children].forEach((btn) =>
+          btn.classList.toggle("is-active", btn === event.target)
+        );
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
+
